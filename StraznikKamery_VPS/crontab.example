@@ -1,0 +1,14 @@
+#!/bin/bash
+# Przykład crontaba (dodaj do crontab -e)
+
+# Odpalanie serwerów w tle zaraz po restarcie całego VPS-a
+@reboot cd ~/StraznikKamery && bash start.sh
+
+# Uruchamiaj watchdog co minutę
+* * * * * cd ~/StraznikKamery && ./venv/bin/python watchdog.py >> watchdog.log 2>&1
+
+# Codzienne czyszczenie logów o północy
+0 0 * * * echo "" > ~/StraznikKamery/api.log && echo "" > ~/StraznikKamery/bot.log && echo "" > ~/StraznikKamery/watchdog.log
+
+# Healthchecks.io dla serwera VPS (ping co 5 minut)
+*/5 * * * * curl -fsS -m 10 --retry 5 -o /dev/null https://hc-ping.com/TWOJ_SLUG_VPS

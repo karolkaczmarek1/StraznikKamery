@@ -1,0 +1,65 @@
+import os
+import json
+import logging
+from dotenv import load_dotenv
+from telegram import Update
+from telegram.ext import ApplicationBuilder, CommandHandler, ContextTypes
+
+load_dotenv()
+logging.basicConfig(level=logging.INFO)
+
+TELEGRAM_BOT_TOKEN = os.getenv("TELEGRAM_BOT_TOKEN")
+STATUS_FILE = "status.json"
+
+async def status_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    if not os.path.exists(STATUS_FILE):
+        await update.message.reply_text("Brak danych z czujnika (plik statusu nie istnieje).")
+        return
+
+    try:
+        with open(STATUS_FILE, "r", encoding="utf-8") as f:
+            data = json.load(f)
+        
+        last_seen = data.get("last_seen_server")
+        if last_seen:
+            try:
+                from zoneinfo import ZoneInfo
+                from datetime import datetime
+                dt = datetime.fromisoformat(last_seen.replace("Z", "+00:00"))
+                dt_pl = dt.astimezone(ZoneInfo("Europe/Warsaw"))
+                last_seen_str = dt_pl.strftime("%Y-%m-%d %H:%M:%S")
+            except Exception:
+                last_seen_str = last_seen
+        else:
+            last_seen_str = "N/A"
+        
+        esp = data.get("esp_data", {})
+        
+        wifi_ssid = esp.get("wifi_ssid", "N/A")
+        wifi_rssi = esp.get("wifi_rssi", "N/A")
+        internet_ok = esp.get("internet_ok", False)
+        ping_time = esp.get("ping_time_ms", "N/A")
+        uptime = esp.get("uptime_s", 0)
+        
+        msg = (
+            f"📊 *Status Strażnika*\n"
+            f"Ostatni kontakt: `{last_seen_str}`\n"
+            f"Uptime ESP: `{uptime} s`\n"
+            f"Wi-Fi: `{wifi_ssid}` ({wifi_rssi} dBm)\n"
+            f"Internet: `{'OK' if internet_ok else 'BRAK'}` (Ping: {ping_time} ms)"
+        )
+        await update.message.reply_text(msg, parse_mode="Markdown")
+    except Exception as e:
+        logging.error(f"Error reading status: {e}")
+        await update.message.reply_text("Wystąpił błąd podczas odczytu statusu.")
+
+if __name__ == "__main__":
+    if not TELEGRAM_BOT_TOKEN:
+        logging.error("TELEGRAM_BOT_TOKEN not set!")
+        exit(1)
+        
+    app = ApplicationBuilder().token(TELEGRAM_BOT_TOKEN).build()
+    app.add_handler(CommandHandler("status", status_command))
+    
+    logging.info("Starting Telegram bot...")
+    app.run_polling()
