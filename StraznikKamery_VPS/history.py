@@ -31,12 +31,12 @@ def append_to_daily_history(record):
     except Exception as e:
         print(f"Error writing to history: {e}")
 
-def get_stats_last_30_days():
+def get_stats_last_7_days():
     now = datetime.now(ZoneInfo("Europe/Warsaw"))
     alerts = []
     daily_pings = {}
 
-    for i in range(30):
+    for i in range(7):
         dt = now - timedelta(days=i)
         year_month = dt.strftime("%Y-%m")
         day = dt.strftime("%d")
@@ -80,11 +80,11 @@ def get_stats_last_30_days():
     alerts.sort(key=get_alert_time)
 
     # Generate ASCII bar chart
-    chart = "Brak danych o pingu z ostatnich 30 dni."
+    chart = "Brak danych o pingu z ostatnich 7 dni."
     if daily_pings:
         days_list = []
-        for i in range(30):
-            dt = now - timedelta(days=29 - i) # chronological order left to right
+        for i in range(7):
+            dt = now - timedelta(days=6 - i) # chronological order left to right
             date_str = dt.strftime("%Y-%m-%d")
             days_list.append(dt.strftime("%d"))
 
@@ -92,8 +92,8 @@ def get_stats_last_30_days():
         lines = []
         for level in range(50, -1, -10):
             line = f"{level:02} "
-            for i in range(30):
-                dt = now - timedelta(days=29 - i)
+            for i in range(7):
+                dt = now - timedelta(days=6 - i)
                 date_str = dt.strftime("%Y-%m-%d")
 
                 ping = daily_pings.get(date_str)
@@ -108,10 +108,10 @@ def get_stats_last_30_days():
         chart = "\n".join(lines)
 
     # Format alerts
-    alerts_text = "Brak alarmów w ostatnich 30 dniach."
+    alerts_text = "Brak alarmów w ostatnich 7 dniach."
     if alerts:
         alerts_lines = []
-        for alert in alerts[-30:]: # Max 30 alerts to fit in msg
+        for alert in alerts[-30:]: # Keep max 30 alerts limit for msg size, even if 7 days
             time_str = alert.get("server_time", alert.get("saved_at", ""))
             try:
                 dt = datetime.fromisoformat(time_str.replace("Z", "+00:00"))
@@ -124,5 +124,5 @@ def get_stats_last_30_days():
 
         alerts_text = "\n".join(alerts_lines)
 
-    stats_msg = f"📊 *Statystyki (Ostatnie 30 dni)*\n\n*Średni ping (ms):*\n```\n{chart}\n```\n\n*Ostatnie alarmy:*\n```\n{alerts_text}\n```"
+    stats_msg = f"📊 *Statystyki (Ostatnie 7 dni)*\n\n*Średni ping (ms):*\n```\n{chart}\n```\n\n*Ostatnie alarmy:*\n```\n{alerts_text}\n```"
     return stats_msg

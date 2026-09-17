@@ -78,7 +78,7 @@ async def status_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 async def stats_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     try:
-        stats_msg = history.get_stats_last_30_days()
+        stats_msg = history.get_stats_last_7_days()
         await update.message.reply_text(stats_msg, parse_mode="Markdown")
     except Exception as e:
         logging.error(f"Error reading stats: {e}")
