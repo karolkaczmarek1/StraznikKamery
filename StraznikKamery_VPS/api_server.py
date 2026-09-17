@@ -5,6 +5,7 @@ from datetime import datetime
 from fastapi import FastAPI, HTTPException, Request
 import requests
 from dotenv import load_dotenv
+import history
 
 load_dotenv()
 
@@ -55,6 +56,9 @@ async def update_status(request: Request):
     with open(STATUS_FILE, "w", encoding="utf-8") as f:
         json.dump(status_data, f, ensure_ascii=False, indent=2)
 
+    # Append to daily history
+    history.append_to_daily_history(status_data)
+
     # Process alerts
     alerts = data.get("alerts", [])
     if alerts:
@@ -69,8 +73,7 @@ async def update_status(request: Request):
             # Save to history
             alert["server_time"] = now.isoformat()
             alert["source"] = "sensor"
-            with open(HISTORY_FILE, "a", encoding="utf-8") as f:
-                f.write(json.dumps(alert) + "\n")
+            history.append_to_daily_history(alert)
 
     return {"status": "ok"}
 

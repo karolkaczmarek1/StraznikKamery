@@ -4,6 +4,7 @@ import logging
 from dotenv import load_dotenv
 from telegram import Update
 from telegram.ext import ApplicationBuilder, CommandHandler, ContextTypes
+import history
 
 load_dotenv()
 logging.basicConfig(level=logging.INFO)
@@ -75,6 +76,14 @@ async def status_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
         logging.error(f"Error reading status: {e}")
         await update.message.reply_text("Wystąpił błąd podczas odczytu statusu.")
 
+async def stats_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    try:
+        stats_msg = history.get_stats_last_30_days()
+        await update.message.reply_text(stats_msg, parse_mode="Markdown")
+    except Exception as e:
+        logging.error(f"Error reading stats: {e}")
+        await update.message.reply_text("Wystąpił błąd podczas odczytu statystyk.")
+
 if __name__ == "__main__":
     if not TELEGRAM_BOT_TOKEN:
         logging.error("TELEGRAM_BOT_TOKEN not set!")
@@ -82,6 +91,7 @@ if __name__ == "__main__":
         
     app = ApplicationBuilder().token(TELEGRAM_BOT_TOKEN).build()
     app.add_handler(CommandHandler("status", status_command))
+    app.add_handler(CommandHandler("stats", stats_command))
     
     logging.info("Starting Telegram bot...")
     app.run_polling()
