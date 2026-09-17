@@ -65,7 +65,8 @@ async def status_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
         msg = (
             f"📊 *Status Strażnika*\n"
             f"Ostatni kontakt: `{last_seen_str}`\n"
-            f"Uruchomiono: `{boot_time_str}` (Uptime: {uptime_str})\n"
+            f"Uruchomiono: `{boot_time_str}`\n"
+            f"Uptime: `{uptime_str}`\n"
             f"Wi-Fi: `{wifi_ssid}` ({wifi_rssi} dBm)\n"
             f"Internet: `{'OK' if internet_ok else 'BRAK'}` (Ping: {ping_time} ms)"
         )
