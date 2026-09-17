@@ -21,30 +21,51 @@ async def status_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
             data = json.load(f)
         
         last_seen = data.get("last_seen_server")
+        esp = data.get("esp_data", {})
+        uptime_raw = esp.get("uptime_s", 0)
+        
+        last_seen_str = "N/A"
+        boot_time_str = "N/A"
+        uptime_str = f"{uptime_raw} s"
+        
         if last_seen:
             try:
                 from zoneinfo import ZoneInfo
-                from datetime import datetime
+                from datetime import datetime, timedelta
                 dt = datetime.fromisoformat(last_seen.replace("Z", "+00:00"))
                 dt_pl = dt.astimezone(ZoneInfo("Europe/Warsaw"))
                 last_seen_str = dt_pl.strftime("%Y-%m-%d %H:%M:%S")
+                
+                uptime_int = int(uptime_raw)
+                boot_time = dt_pl - timedelta(seconds=uptime_int)
+                boot_time_str = boot_time.strftime("%Y-%m-%d %H:%M:%S")
+                
+                m, s = divmod(uptime_int, 60)
+                h, m = divmod(m, 60)
+                d, h = divmod(h, 24)
+                y, d = divmod(d, 365)
+                mo, d = divmod(d, 30)
+                
+                parts = []
+                if y > 0: parts.append(f"{y}y")
+                if mo > 0: parts.append(f"{mo}mo")
+                if d > 0: parts.append(f"{d}d")
+                if h > 0: parts.append(f"{h}h")
+                if m > 0: parts.append(f"{m}m")
+                parts.append(f"{s}s")
+                uptime_str = " ".join(parts)
             except Exception:
                 last_seen_str = last_seen
-        else:
-            last_seen_str = "N/A"
-        
-        esp = data.get("esp_data", {})
         
         wifi_ssid = esp.get("wifi_ssid", "N/A")
         wifi_rssi = esp.get("wifi_rssi", "N/A")
         internet_ok = esp.get("internet_ok", False)
         ping_time = esp.get("ping_time_ms", "N/A")
-        uptime = esp.get("uptime_s", 0)
         
         msg = (
             f"📊 *Status Strażnika*\n"
             f"Ostatni kontakt: `{last_seen_str}`\n"
-            f"Uptime ESP: `{uptime} s`\n"
+            f"Uruchomiono: `{boot_time_str}` (Uptime: {uptime_str})\n"
             f"Wi-Fi: `{wifi_ssid}` ({wifi_rssi} dBm)\n"
             f"Internet: `{'OK' if internet_ok else 'BRAK'}` (Ping: {ping_time} ms)"
         )
