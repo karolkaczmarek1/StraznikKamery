@@ -16,7 +16,6 @@ TELEGRAM_CHAT_ID = os.getenv("TELEGRAM_CHAT_ID")
 API_SECRET = os.getenv("API_SECRET")
 
 STATUS_FILE = "status.json"
-HISTORY_FILE = "history.jsonl"
 
 def send_telegram(message):
     if not TELEGRAM_BOT_TOKEN or not TELEGRAM_CHAT_ID:
@@ -33,6 +32,13 @@ def send_telegram(message):
     except Exception as e:
         logging.error(f"Failed to send telegram message: {e}")
 
+def get_daily_history_file(now):
+    yyyy_mm = now.strftime("%Y-%m")
+    dd = now.strftime("%d")
+    folder = os.path.join(".", "history", yyyy_mm)
+    os.makedirs(folder, exist_ok=True)
+    return os.path.join(folder, f"{dd}.json")
+
 @app.post("/update")
 async def update_status(request: Request):
     auth_header = request.headers.get("Authorization")
@@ -44,9 +50,12 @@ async def update_status(request: Request):
     except Exception:
         raise HTTPException(status_code=400, detail="Invalid JSON")
 
-    # Save latest status
     from datetime import timezone
     now = datetime.now(timezone.utc)
+
+    history_file = get_daily_history_file(now)
+
+    # Save latest status
     status_data = {
         "last_seen_server": now.isoformat(),
         "esp_data": data.get("status", {})
@@ -54,6 +63,15 @@ async def update_status(request: Request):
     
     with open(STATUS_FILE, "w", encoding="utf-8") as f:
         json.dump(status_data, f, ensure_ascii=False, indent=2)
+
+    # Append status to history
+    with open(history_file, "a", encoding="utf-8") as f:
+        history_status = {
+            "type": "status",
+            "timestamp": now.isoformat(),
+            "data": status_data
+        }
+        f.write(json.dumps(history_status) + "\n")
 
     # Process alerts
     alerts = data.get("alerts", [])
@@ -69,8 +87,14 @@ async def update_status(request: Request):
             # Save to history
             alert["server_time"] = now.isoformat()
             alert["source"] = "sensor"
-            with open(HISTORY_FILE, "a", encoding="utf-8") as f:
-                f.write(json.dumps(alert) + "\n")
+
+            history_alert = {
+                "type": "alert",
+                "timestamp": now.isoformat(),
+                "alert_data": alert
+            }
+            with open(history_file, "a", encoding="utf-8") as f:
+                f.write(json.dumps(history_alert) + "\n")
 
     return {"status": "ok"}
 
