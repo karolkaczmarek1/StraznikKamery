@@ -4,6 +4,7 @@ import logging
 from datetime import datetime, timezone
 import requests
 from dotenv import load_dotenv
+import history
 
 load_dotenv()
 logging.basicConfig(level=logging.INFO)
@@ -69,8 +70,7 @@ def main():
                 "server_time": now.isoformat(),
                 "details": f"No contact for {int(diff_minutes)} minutes"
             }
-            with open(HISTORY_FILE, "a", encoding="utf-8") as f:
-                f.write(json.dumps(alert) + "\n")
+            history.append_to_daily_history(alert)
                 
             state["alert_active"] = True
             with open(WATCHDOG_STATE_FILE, "w", encoding="utf-8") as f:
@@ -89,8 +89,7 @@ def main():
                 "server_time": now.isoformat(),
                 "details": "Contact restored"
             }
-            with open(HISTORY_FILE, "a", encoding="utf-8") as f:
-                f.write(json.dumps(alert) + "\n")
+            history.append_to_daily_history(alert)
                 
             state["alert_active"] = False
             with open(WATCHDOG_STATE_FILE, "w", encoding="utf-8") as f:
